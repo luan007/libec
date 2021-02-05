@@ -75,7 +75,7 @@ later, these `pin` binds to some vue components called `Pin` (obviously..)
 
 and your model is loaded via `three`.
 
-your app is rather game-alike, so very thing is managed the `three` way, parenting.. grouping & so on.
+your app is rather game-alike, so everything is managed the `three` way, parenting.. grouping & so on.
 
 then you created a `data structure` which generates all `pin` in `Vue` world, but each pin requires a `absolute screen position` to render correctly.
 
