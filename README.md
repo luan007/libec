@@ -5,6 +5,11 @@ biased & personal, & in most case you won't be using this & should not care..
 
 consider this as a story / fun read. lol
 
+
+## please check /demos for usage
+---
+![capture](demos/capture.png)
+
 ---
 
 # Why?
