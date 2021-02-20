@@ -82,8 +82,6 @@ class Canvas2DRendererComponent extends Component {
     }
 }
 
-
-
 class TransformComponent extends Component {
     constructor(params) {
         super(params);

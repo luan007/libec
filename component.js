@@ -2,6 +2,9 @@ const observable = require('./util-observer-patched.js');
 const yaml = require('js-yaml');
 const nanoId = require('nanoId');
 
+const ev2 = require('eventemitter2')
+const ev3 = require('eventemitter3')
+
 import { id_gen } from "./util";
 
 import { Entity } from "./entity";
@@ -28,6 +31,20 @@ export class Component {
         return this.entity.getComponent(type);
     }
 
+    getEntity(query) {
+        return this.world.getEntity(query);
+    }
+
+    /**
+     * @template T
+     * @param {new ()=>T} type 
+     * @param {*} query
+     * @returns {T}
+     */
+    queryComponent(type, entity_query) {
+        return this.world.getComponentFrom(entity_query, type) || this.getComponent(type);
+    }
+
     constructor(params) {
         var id = null;
         params = params || {};
@@ -37,6 +54,9 @@ export class Component {
         else if (params.id) {
             id = params.id;
         }
+
+        this.block = false;
+        this.params = params;
 
         /**
          * @type {World} 
@@ -67,9 +87,9 @@ export class Component {
         this.awoken = false;
     }
 
-    base_awake() {
+    async base_awake() {
         if (this.awoken) return true;
-        if (!this.awake()) {
+        if (!(await this.awake())) {
             this.awoken = true;
             return true;
         }
@@ -178,43 +198,43 @@ export class Component {
         //[this] is trustworthy
 
         this._strap_value(key);
-        return v;
+        return this.params[key] || v;
         // return;
     }
 
 
-    /**
-     * this kind of cheats in many way - fools the compiler / vscode
-     * @template T
-     * @param {new () => T} type 
-     * @returns {T[]}
-     */
-    linkArr(key, type, m = {}) {
-    }
+    // /**
+    //  * this kind of cheats in many way - fools the compiler / vscode
+    //  * @template T
+    //  * @param {new () => T} type 
+    //  * @returns {T[]}
+    //  */
+    // linkArr(key, type, m = {}) {
+    // }
 
-    /**
-     * this kind of cheats in many way - fools the compiler / vscode
-     * @template T
-     * @param {new () => T} type 
-     * @returns {T}
-     */
-    entityWith(key, type, m = {}) {
-        // var name = type.name;
+    // /**
+    //  * this kind of cheats in many way - fools the compiler / vscode
+    //  * @template T
+    //  * @param {new () => T} type 
+    //  * @returns {T}
+    //  */
+    // entityWith(key, type, m = {}) {
+    //     // var name = type.name;
 
-        var query = {};
-        this.__proto__._meta = this.__proto__._meta || {};
-        this.__proto__._meta[key] = m; //warning, this meta should NOT change
+    //     var query = {};
+    //     this.__proto__._meta = this.__proto__._meta || {};
+    //     this.__proto__._meta[key] = m; //warning, this meta should NOT change
 
-        var instance = null; //just nulling this WILL invalidate
-        !Object.getOwnPropertyDescriptor(this.__proto__, key) && Object.defineProperty(this.__proto__, key, {
-            get: function () {
-                return instance;
-            },
-            set: function (v) {
-                instance = v; //stores instance - instant!
-            }
-        })
-    }
+    //     var instance = null; //just nulling this WILL invalidate
+    //     !Object.getOwnPropertyDescriptor(this.__proto__, key) && Object.defineProperty(this.__proto__, key, {
+    //         get: function () {
+    //             return instance;
+    //         },
+    //         set: function (v) {
+    //             instance = v; //stores instance - instant!
+    //         }
+    //     })
+    // }
 
     _strap_value(key) {
         //serialization
@@ -238,8 +258,62 @@ export class Component {
 
     update() { }
 
-    awake() { }
+    async awake() { }
 
     notify() { }
 
+}
+
+export class EventedComponent extends Component {
+    constructor(params) {
+        super(params);
+        this.events = new ev2.EventEmitter2({
+            wildcard: true
+        }) //todo: use ev3 when possible
+    }
+
+    registerEvent(name, meta) {
+        meta = meta || {};
+        var eventCall = (params) => {
+            this.events.emit(name, params);
+        }
+        var realCall = eventCall;
+
+        if (meta.throttle) {
+            meta.throttle = meta.throttle <= 0 ? 1 : meta.throttle;
+            var last_call = 0;
+            var timeout = 0;
+            var lastParams = null;
+            realCall = (params) => {
+
+                if(meta.throttle == 0) {
+                    clearTimeout(timeout);
+                    eventCall(params);
+                    return;
+                }
+
+                if (Date.now() - last_call > meta.throttle) {
+                    //missed or too long?
+                    clearTimeout(timeout);
+                    eventCall(params);
+                    lastParams = null;
+                    last_call = Date.now(); //set it as now!;
+                    return;
+                }
+
+                clearTimeout(timeout);
+                lastParams = params;
+                setTimeout(() => {
+                    last_call = Date.now();
+                    eventCall(lastParams);
+                }, meta.throttle);
+            }
+        }
+        return {
+            hook: this.events.on.bind(this.events, name),
+            trigger: realCall,
+            meta: meta
+        };
+
+    }
 }

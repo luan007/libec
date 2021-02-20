@@ -26,6 +26,8 @@ export class Entity {
 
         this.componentMap = {}; //way better than map, don't know why?
         this.id = params.id || id_gen("Entity");
+
+        this.c = this.component;
     }
 
     toJSON() {
@@ -64,7 +66,9 @@ export class Entity {
 
     /**
      * @template T
-     * @param {new () => T} cType 
+     * @template Q
+     * @param {new (param:Q) => T} cType 
+     * @param {Q} params
      * @param {(comp: T)=>any} init 
      */
     component(cType, params, init = (comp) => { /**does nothing */ }) {

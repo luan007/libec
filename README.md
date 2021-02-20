@@ -81,7 +81,7 @@ then you created a `data structure` which generates all `pin` in `Vue` world, bu
 
 linking `objects3d` to `vue-data` is a straight forward way to deal with this, but should be considered 'ugly' and not 'pure', also - where should you do all the 'screen position calculations'? inside the component or some where in your loop?
 
-after all this though, it works, and those stitching made the code look like a bowl of sticky crap sauce, where `all parts are kind of connected` which makes the code not reusable in other projects.
+after all this though, it works, and those stitching made the code look like a bowl of sticky crap sauce - `all parts are kind of connected` - makes the code not reusable in other projects.
 
 not ideal..
 

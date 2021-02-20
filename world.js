@@ -25,6 +25,12 @@ export class World {
         this.frames = 0;
 
         World.default = World.default || this;
+
+        this.e = this.entity;
+        this.ce = this.addComponentToEntity;
+
+        this.ge = this.getEntity
+        this.gc = this.getComponentFrom;
     }
 
     toJSON() {
@@ -112,6 +118,7 @@ export class World {
         }
     }
 
+
     addComponentToEntity(cType, e, params, initFn) {
         var comp = new cType(params);
         comp.entity = e;
@@ -120,10 +127,10 @@ export class World {
         this._comp_cache[comp.id] = comp;
         initFn(comp);
 
-        var handle = setTimeout(() => {
-            clearTimeout(handle);
-            comp.base_awake();
-        }, 0);
+        // var handle = setTimeout(() => {
+        //     clearTimeout(handle);
+        //     comp.base_awake();
+        // }, 0);
         return comp;
     }
 
@@ -140,29 +147,37 @@ export class World {
         return e;
     }
 
-    update() {
+    async update() {
         this.now = Date.now();
         this.frames++;
         for (var i = 0; i < this.components.length; i++) {
-            if (!this.components[i]) continue;
-            if (this.components[i]._destroyed) {
+            let comp = this.components[i]
+            if (!comp) continue;
+            if (comp._destroyed) {
                 this._cleanComponent(i);
             }
-            if (!this.components[i].awoken) {
-                this.components[i].base_awake(); //check next round?
-                continue;
+            if (!comp.awoken) {
+                let result = true;
+                result = await comp.base_awake(); //check next round?
+                if (!result) {
+                    if(comp.block) {
+                        return;
+                    }
+                    continue; //skip or kill
+                }
+                //good to go!
             }
-            if (!this.components[i].loop) continue; //no loop!
-            if (this.components[i].throttleSkipFrames) {
-                (this.frames % this.components[i].throttleSkipFrames) == 0 && this.components[i].base_update();
+            if (!comp.loop) continue; //no loop!
+            if (comp.throttleSkipFrames) {
+                (this.frames % comp.throttleSkipFrames) == 0 && comp.base_update();
             }
-            else if (this.components[i].throttleDeltaTime) {
-                if (this.now - this.components[i].lastUpdate > this.components[i].throttleDeltaTime) {
-                    this.components[i].base_update();
+            else if (comp.throttleDeltaTime) {
+                if (this.now - comp.lastUpdate > comp.throttleDeltaTime) {
+                    comp.base_update();
                 }
             }
             else {
-                this.components[i].base_update();
+                comp.base_update();
             }
         }
         for (var i = 0; i < this.entities.length; i++) {
@@ -199,3 +214,6 @@ export class World {
         this.components[i] = null;
     }
 }
+
+
+export var world = new World();
